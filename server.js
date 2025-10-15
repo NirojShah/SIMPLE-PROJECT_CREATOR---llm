@@ -1,25 +1,22 @@
 #!/usr/bin/env node
 
-const inquirer = require("inquirer");
+import inquirer from "inquirer";
+import fs from "fs-extra";
+import path from "path";
+import ollama from "ollama";
+import chalkModule from "chalk";
 
-const fs = require("fs-extra");
-const path = require("path");
-const ollama = require("ollama");
-
-async function loadChalk() {
-  const chalkModule = await import("chalk");
-  return chalkModule.default;
-}
+const chalk = chalkModule;
 
 async function chatWithModel(prompt) {
   const response = await ollama.chat({
-    model: "llama3",
+    model: "deepseek-r1:7b",
     messages: [{ role: "user", content: prompt }],
   });
   return response.message.content;
 }
 
-async function askProjectIdea(chalk) {
+async function askProjectIdea() {
   const { idea } = await inquirer.prompt([
     {
       type: "input",
@@ -30,7 +27,7 @@ async function askProjectIdea(chalk) {
   return idea;
 }
 
-async function clarifyIdea(idea, chalk) {
+async function clarifyIdea(idea) {
   console.log(chalk.yellow("\n🤖 Let’s clarify your project idea...\n"));
 
   let finalIdea = idea;
@@ -70,7 +67,7 @@ Then summarize the clarified project idea in the end.`
   return finalIdea;
 }
 
-async function getDirectoryDetails(chalk) {
+async function getDirectoryDetails() {
   const { dirPath, folderName } = await inquirer.prompt([
     {
       type: "input",
@@ -92,7 +89,7 @@ async function getDirectoryDetails(chalk) {
   return projectPath;
 }
 
-async function createProject(projectPath, idea, chalk) {
+async function createProject(projectPath, idea) {
   const packageJson = {
     name: path.basename(projectPath),
     version: "1.0.0",
@@ -122,14 +119,12 @@ async function createProject(projectPath, idea, chalk) {
 }
 
 async function main() {
-  const chalk = await loadChalk();
-
   console.log(chalk.magenta.bold("\n🚀 Welcome to the LLM Project Creator!\n"));
 
-  const idea = await askProjectIdea(chalk);
-  const clarifiedIdea = await clarifyIdea(idea, chalk);
-  const projectPath = await getDirectoryDetails(chalk);
-  await createProject(projectPath, clarifiedIdea, chalk);
+  const idea = await askProjectIdea();
+  const clarifiedIdea = await clarifyIdea(idea);
+  const projectPath = await getDirectoryDetails();
+  await createProject(projectPath, clarifiedIdea);
 
   console.log(chalk.cyan("\n🎉 All done! You can now:"));
   console.log(chalk.yellow(`cd ${projectPath}`));
@@ -137,8 +132,6 @@ async function main() {
   console.log(chalk.yellow(`npm start\n`));
 }
 
-// ✅ Ensure chalk is loaded before running
-main().catch(async (err) => {
-  const chalk = await loadChalk();
+main().catch((err) => {
   console.error(chalk.red("❌ Error:"), err);
 });
